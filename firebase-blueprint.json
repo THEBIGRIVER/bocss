@@ -1,0 +1,69 @@
+{
+  "entities": {
+    "User": {
+      "title": "User",
+      "description": "A player's persistent profile data.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The user's unique ID." },
+        "displayName": { "type": "string", "description": "The user's display name." },
+        "score": { "type": "number", "description": "Total score for the leaderboard." },
+        "coins": { "type": "number", "description": "Currency for the shop." },
+        "equippedWeapon": { "type": "string", "description": "ID of the equipped weapon." },
+        "inventory": { "type": "array", "items": { "type": "string" }, "description": "List of owned weapon IDs." },
+        "squadId": { "type": "string", "description": "The squad code, empty if none." },
+        "createdAt": { "type": "timestamp", "description": "When the profile was created." }
+      },
+      "required": ["uid", "displayName", "score", "coins", "equippedWeapon", "inventory", "squadId", "createdAt"]
+    },
+    "ActivePlayer": {
+      "title": "ActivePlayer",
+      "description": "Real-time state of a player currently in a match.",
+      "type": "object",
+      "properties": {
+        "uid": { "type": "string", "description": "The user's unique ID." },
+        "displayName": { "type": "string", "description": "The user's display name." },
+        "x": { "type": "number", "description": "X position." },
+        "y": { "type": "number", "description": "Y position." },
+        "vx": { "type": "number", "description": "X velocity." },
+        "vy": { "type": "number", "description": "Y velocity." },
+        "health": { "type": "number", "description": "Current health." },
+        "squadId": { "type": "string", "description": "The squad code, empty if none." },
+        "territoryId": { "type": "string", "description": "The current territory ID." },
+        "isShooting": { "type": "boolean", "description": "Whether the player is shooting." },
+        "facingRight": { "type": "boolean", "description": "Direction the player is facing." },
+        "lastUpdated": { "type": "timestamp", "description": "Last time this state was updated." }
+      },
+      "required": ["uid", "displayName", "x", "y", "vx", "vy", "health", "squadId", "territoryId", "isShooting", "facingRight", "lastUpdated"]
+    },
+    "Territory": {
+      "title": "Territory",
+      "description": "A map territory.",
+      "type": "object",
+      "properties": {
+        "id": { "type": "string", "description": "Territory ID." },
+        "name": { "type": "string", "description": "Territory name." },
+        "polygonCoordinates": { "type": "string", "description": "JSON stringified coordinates." },
+        "ownerSquad": { "type": "string", "description": "Owning squad ID." },
+        "health": { "type": "number", "description": "Territory health." },
+        "activePlayers": { "type": "number", "description": "Number of active players." },
+        "colorIndex": { "type": "number", "description": "Color index." }
+      },
+      "required": ["id", "name", "polygonCoordinates", "ownerSquad", "health", "activePlayers", "colorIndex"]
+    }
+  },
+  "firestore": {
+    "/users/{userId}": {
+      "schema": { "$ref": "#/entities/User" },
+      "description": "Stores persistent user profiles."
+    },
+    "/active_players/{userId}": {
+      "schema": { "$ref": "#/entities/ActivePlayer" },
+      "description": "Stores real-time game state for active players."
+    },
+    "/territories/{territoryId}": {
+      "schema": { "$ref": "#/entities/Territory" },
+      "description": "Stores map territories."
+    }
+  }
+}

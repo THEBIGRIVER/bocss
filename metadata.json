@@ -1,0 +1,7 @@
+{
+  "name": "BOCS",
+  "description": "A futuristic multiplayer shooting game with a real-world map and bot players.",
+  "requestFramePermissions": [
+    "geolocation"
+  ]
+}

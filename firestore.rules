@@ -1,0 +1,118 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    // ===============================================================
+    // Assumed Data Model
+    // ===============================================================
+    //
+    // Collection: users
+    // Document ID: {userId}
+    // Fields:
+    //   - uid: string (required) - User's unique ID
+    //   - displayName: string (required, max 30 chars) - User's display name
+    //   - score: number (required, >= 0) - Total score
+    //   - coins: number (required, >= 0) - Currency
+    //   - equippedWeapon: string (required, max 50 chars) - ID of equipped weapon
+    //   - inventory: list (required, max 100 items) - List of owned weapon IDs
+    //   - squadId: string (required) - Squad code
+    //   - createdAt: timestamp (required, immutable) - Creation time
+    //
+    // Collection: active_players
+    // Document ID: {userId}
+    // Fields:
+    //   - uid: string (required) - User's unique ID
+    //   - displayName: string (required, max 30 chars) - User's display name
+    //   - x: number (required) - X position
+    //   - y: number (required) - Y position
+    //   - vx: number (required) - X velocity
+    //   - vy: number (required) - Y velocity
+    //   - health: number (required, 0-100) - Current health
+    //   - squadId: string (required) - Squad code
+    //   - territoryId: string (required) - Current territory ID
+    //   - isShooting: bool (required) - Shooting state
+    //   - facingRight: bool (required) - Facing direction
+    //   - lastUpdated: timestamp (required) - Last update time
+    //
+    // Collection: territories
+    // Document ID: {territoryId}
+    // Fields:
+    //   - id: string (required)
+    //   - name: string (required)
+    //   - polygonCoordinates: string (required)
+    //   - ownerSquad: string (required)
+    //   - health: number (required)
+    //   - activePlayers: number (required)
+    //   - colorIndex: number (required)
+    //
+    // ===============================================================
+
+    function isAuthenticated() {
+      return request.auth != null;
+    }
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+    
+    function isValidUser() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['uid', 'displayName', 'score', 'coins', 'equippedWeapon', 'inventory', 'squadId', 'createdAt']) &&
+             data.keys().hasOnly(['uid', 'displayName', 'score', 'coins', 'equippedWeapon', 'inventory', 'squadId', 'createdAt']) &&
+             data.uid == request.auth.uid &&
+             data.displayName is string && data.displayName.size() > 0 && data.displayName.size() < 30 &&
+             data.score is number && data.score >= 0 &&
+             data.coins is number && data.coins >= 0 &&
+             data.equippedWeapon is string && data.equippedWeapon.size() < 50 &&
+             data.inventory is list && data.inventory.size() < 100 &&
+             data.squadId is string && data.squadId.size() <= 10 &&
+             data.createdAt is timestamp;
+    }
+    
+    function isValidActivePlayer() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['uid', 'displayName', 'x', 'y', 'vx', 'vy', 'health', 'squadId', 'territoryId', 'isShooting', 'facingRight', 'lastUpdated']) &&
+             data.keys().hasOnly(['uid', 'displayName', 'x', 'y', 'vx', 'vy', 'health', 'squadId', 'territoryId', 'isShooting', 'facingRight', 'lastUpdated']) &&
+             data.uid == request.auth.uid &&
+             data.displayName is string && data.displayName.size() > 0 && data.displayName.size() < 30 &&
+             data.x is number && data.y is number &&
+             data.vx is number && data.vy is number &&
+             data.health is number && data.health >= 0 && data.health <= 100 &&
+             data.squadId is string && data.squadId.size() <= 10 &&
+             data.territoryId is string && data.territoryId.size() <= 20 &&
+             data.isShooting is bool &&
+             data.facingRight is bool &&
+             data.lastUpdated is timestamp;
+    }
+
+    function isValidTerritory() {
+      let data = request.resource.data;
+      return data.keys().hasAll(['id', 'name', 'polygonCoordinates', 'ownerSquad', 'health', 'activePlayers', 'colorIndex']) &&
+             data.keys().hasOnly(['id', 'name', 'polygonCoordinates', 'ownerSquad', 'health', 'activePlayers', 'colorIndex']) &&
+             data.id is string && data.id.size() > 0 && data.id.size() < 50 &&
+             data.name is string && data.name.size() > 0 && data.name.size() < 50 &&
+             data.polygonCoordinates is string && data.polygonCoordinates.size() < 10000 &&
+             data.ownerSquad is string && data.ownerSquad.size() <= 10 &&
+             data.health is number && data.health >= 0 && data.health <= 1000 &&
+             data.activePlayers is number && data.activePlayers >= 0 &&
+             data.colorIndex is number && data.colorIndex >= 0 && data.colorIndex <= 4;
+    }
+
+    match /users/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && isValidUser();
+      allow update: if isOwner(userId) && isValidUser() && request.resource.data.createdAt == resource.data.createdAt;
+    }
+
+    match /active_players/{userId} {
+      allow read: if isAuthenticated();
+      allow create: if isOwner(userId) && isValidActivePlayer();
+      allow update: if isOwner(userId) && isValidActivePlayer();
+      allow delete: if isOwner(userId);
+    }
+
+    match /territories/{territoryId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && isValidTerritory();
+      allow update: if isAuthenticated() && isValidTerritory();
+    }
+  }
+}
